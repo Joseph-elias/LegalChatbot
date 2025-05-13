@@ -7,7 +7,7 @@ import pandas as pd
 from pdf2image import convert_from_path
 import pytesseract
 
-# Path to your PDF C:\joseph\utc+lille\lille\MIAS_COURSES\chatbot\Lebanon_Penal_Code_1943.pdf
+# Path to your PDF
 pdf_path = r'C:/joseph/utc+lille/lille/MIAS_COURSES/chatbot/Lebanon_Penal_Code_1943-2.pdf'
 
 # --- 1) OCR extraction page by page ---
@@ -28,26 +28,21 @@ full_text = re.sub(r'[\u064B-\u0652]', '', full_text)
 if "المادة" not in full_text:
     raise RuntimeError("❌ Extraction échouée : aucun 'المادة' trouvé après normalisation.")
 
-pattern = (
-    r'(?m)^'                                    # début de ligne
-    r'(المادة)\s*'                              # groupe 1 = le mot "المادة"
-    r'([0-9\u0660-\u0669]+)\s*'                # groupe 2 = le numéro
-    r'-\s*'                                     # tiret OBLIGATOIRE
-    r'(.*?)'                                    # groupe 3 = le corps de l’article
-    r'(?=(?m)^المادة\s*[0-9\u0660-\u0669]+\s*-|$)'  # lookahead jusqu’au prochain header
-)
-
+# --- 2) Split into articles ---
+pattern = r'(المادة\s*[0-9\u0660-\u0669]+)\s*[-–]?\s*(.*?)(?=(?:المادة\s*[0-9\u0660-\u0669]+)|$)'
 matches = re.findall(pattern, full_text, flags=re.DOTALL)
 
 articles = []
-for _, num_str, body in matches:
+for header, body in matches:
+    num_match = re.search(r'المادة\s*([0-9\u0660-\u0669]+)', header)
+    num_str = num_match.group(1) if num_match else ""
     # Convertit chiffres indic en ascii
-    num = num_str.translate(str.maketrans('٠١٢٣٤٥٦٧٨٩','0123456789'))
+    num_str = num_str.translate(str.maketrans('٠١٢٣٤٥٦٧٨٩','0123456789'))
+    article_number = num_str
     articles.append({
-        "article_number": num,
+        "article_number": article_number,
         "text": body.strip()
     })
-
 
 if not articles:
     raise RuntimeError("❌ Aucun article détecté. Vérifie ton regex ou la qualité de l’OCR.")
