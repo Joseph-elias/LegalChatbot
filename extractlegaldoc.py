@@ -6,7 +6,7 @@ from pdf2image import convert_from_path
 import pytesseract
 
 # Path to your PDFLebanon_Penal_Code_1943.pdf
-pdf_path = r'C:/joseph/utc+lille/lille/MIAS_COURSES/chatbot/Lebanon_Penal_Code_1943.pdf'
+pdf_path = r'Lebanon_Penal_Code_1943.pdf'
 
 # 1) OCR extraction page by page
 full_text = ""
