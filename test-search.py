@@ -1,5 +1,5 @@
 from semantic_search import refined_search
-#
+
 def main():
     query = input("🔎 Enter a short query: ")
     results = refined_search(query, top_k=5)

@@ -2,17 +2,21 @@ import json
 import os
 import torch
 from sentence_transformers import util, SentenceTransformer
-from arabert.preprocess import ArabertPreprocessor
 
-# ── A) Setup embedder and preprocessor ───────────────────────────────────── 
-MODEL_NAME   = "aubmindlab/bert-large-arabertv2" 
-embedder     = SentenceTransformer(MODEL_NAME)
-arabert_prep = ArabertPreprocessor(
-    model_name=MODEL_NAME,
-    farasa=False
+
+# ── A) Setup embedder and preprocessor ─────────────────────────────────────
+# Use the Base AraBERT model (large variant is not published)
+MODEL_NAME   = "aubmindlab/bert-base-arabertv02"
+from sentence_transformers import models
+# Build a SentenceTransformer manually to avoid fallback warnings
+word_emb     = models.Transformer(MODEL_NAME, max_seq_length=512)
+pooling_model= models.Pooling(
+    word_emb.get_word_embedding_dimension(),
+    pooling_mode_mean_tokens=True,
+    pooling_mode_cls_token=False
 )
-
-# ── B) Paths ─────────────────────────────────────────────────────────────
+embedder     = SentenceTransformer(modules=[word_emb, pooling_model])
+# ── B) Paths ───────────────────────────────────────────────────────────── ───────────────────────────────────────────────────────────── ─────────────────────────────────────────────────────────────
 JSON_PATH = "penal_code_articles_ocr.json"
 EMB_PATH  = "corpus_emb_only.pt"
 
@@ -27,8 +31,8 @@ def load_articles(json_path=JSON_PATH):
 # ── D) Build or load pre-computed embeddings ──────────────────────────────
 def load_embeddings():
     ids, texts = load_articles()
-    # Preprocess texts for AraBERT consistency
-    processed_texts = [arabert_prep.preprocess(t) for t in texts]
+    # Preprocess corpus texts for AraBERT consistency
+    processed_texts = texts  # raw texts, no preprocessing
     if os.path.exists(EMB_PATH):
         corpus_emb = torch.load(EMB_PATH)
     else:
@@ -40,13 +44,13 @@ def load_embeddings():
         torch.save(corpus_emb, EMB_PATH)
     return ids, texts, corpus_emb
 
-# Initialize once\ ncorpus_ids, corpus_texts, corpus_emb = load_embeddings()
+# ── Initialize once ────────────────────────────────────────────────────────
 corpus_ids, corpus_texts, corpus_emb = load_embeddings()
 
 # ── E) Pure semantic-search function ──────────────────────────────────────
 def semantic_search(query: str, top_k: int = 5):
-    # Preprocess query before encoding
-    q_processed = arabert_prep.preprocess(query)
+    # Preprocess and encode query
+    q_processed = query  # raw query, no preprocessing
     q_emb       = embedder.encode(
         [q_processed],
         convert_to_tensor=True,
@@ -66,7 +70,7 @@ def semantic_search(query: str, top_k: int = 5):
 
 # ── F) Smoke-test when run directly ───────────────────────────────────────
 if __name__ == "__main__":
-    q = " بالأشغال الشاقة على القيام بأشغال مجهدة تتناسب وجنسهم وعمرهم؛\nسواء في داخل السجن أو في خارجه"
+    q = "قاصر دون الثامنة عشرة من عمره أشرية روحية"
     print(f"Top 3 results for query: '{q}'\n")
     for r in semantic_search(q, top_k=3):
         print(f"Article {r['article_number']} (score={r['score']:.3f}):")
