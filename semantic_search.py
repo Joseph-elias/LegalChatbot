@@ -13,9 +13,7 @@ pooling  = models.Pooling(
     pooling_mode_mean_tokens=True,
     pooling_mode_cls_token=False
 )
-device = "cuda" if torch.cuda.is_available() else "cpu"
-embedder = SentenceTransformer(modules=[word_emb, pooling], device=device)
-
+embedder = SentenceTransformer(modules=[word_emb, pooling], device="cpu")
 
 # ── B) Paths & cache naming ────────────────────────────────────────────────
 JSON_PATH = "penal_code_articles_ocr.json"
@@ -83,7 +81,7 @@ def semantic_search(query: str, top_k: int = 5):
 
 # ── F) Smoke-test when run directly ───────────────────────────────────────
 if __name__ == "__main__":
-    q = "يقضى بالإعدام إذا حدث الفعل في زمن الحرب"
+    q ="من سرق شيئا من محصولات الأرض أو من ثمار شجرهاء"
     print(f"Top 3 results for query: '{q}'\n")
     for r in semantic_search(q, top_k=3):
         print(f"Article {r['article_number']} (score={r['score']:.3f}):")
