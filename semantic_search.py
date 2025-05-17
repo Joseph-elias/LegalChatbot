@@ -128,7 +128,7 @@ def hybrid_search(query: str, top_k: int = 5, alpha: float = 0.6):
 
 # ── F) Smoke-test when run directly ───────────────────────────────────────
 if __name__ == "__main__":
-    q = "طلب أجراً أعلى من السعر المحدد في الكشف التسعيري"
+    q = "يتعرض المحرض لعقوبة الجريمة التي أراد أن تقترف"
     print(f"Top 3 results for query: '{q}'\n")
     for r in hybrid_search(q, top_k=3):
         # You can print the combined score, plus the BM25 and semantic components:
