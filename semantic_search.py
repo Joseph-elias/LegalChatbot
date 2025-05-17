@@ -1,24 +1,27 @@
 import json
 import os
 import torch
-from sentence_transformers import util, SentenceTransformer
+from sentence_transformers import util, models, SentenceTransformer
 
-
-# ── A) Setup embedder and preprocessor ─────────────────────────────────────
-# Use the Base AraBERT model (large variant is not published)
-MODEL_NAME   = "aubmindlab/bert-base-arabertv02"
-from sentence_transformers import models
-# Build a SentenceTransformer manually to avoid fallback warnings
-word_emb     = models.Transformer(MODEL_NAME, max_seq_length=512)
-pooling_model= models.Pooling(
+# ── A) Setup embedder ──────────────────────────────────────────────────────
+# Choose your model: base or large
+MODEL_NAME = "aubmindlab/bert-large-arabertv2"
+# Build manually to avoid fallback warnings
+word_emb = models.Transformer(MODEL_NAME, max_seq_length=512)
+pooling  = models.Pooling(
     word_emb.get_word_embedding_dimension(),
     pooling_mode_mean_tokens=True,
     pooling_mode_cls_token=False
 )
-embedder     = SentenceTransformer(modules=[word_emb, pooling_model])
-# ── B) Paths ───────────────────────────────────────────────────────────── ───────────────────────────────────────────────────────────── ─────────────────────────────────────────────────────────────
+device = "cuda" if torch.cuda.is_available() else "cpu"
+embedder = SentenceTransformer(modules=[word_emb, pooling], device=device)
+
+
+# ── B) Paths & cache naming ────────────────────────────────────────────────
 JSON_PATH = "penal_code_articles_ocr.json"
-EMB_PATH  = "corpus_emb_only.pt"
+# Embed cache includes model name to avoid collisions
+safe_name = MODEL_NAME.replace('/', '_')
+EMB_PATH  = f"corpus_emb_{safe_name}.pt"
 
 # ── C) Load articles from JSON ────────────────────────────────────────────
 def load_articles(json_path=JSON_PATH):
@@ -28,13 +31,23 @@ def load_articles(json_path=JSON_PATH):
     texts = [a["text"]           for a in articles]
     return ids, texts
 
-# ── D) Build or load pre-computed embeddings ──────────────────────────────
+# ── D) Build or load embeddings with dimension check ──────────────────────
 def load_embeddings():
     ids, texts = load_articles()
-    # Preprocess corpus texts for AraBERT consistency
-    processed_texts = texts  # raw texts, no preprocessing
+    processed_texts = texts  # raw texts
+    target_dim = embedder.get_sentence_embedding_dimension()
+
     if os.path.exists(EMB_PATH):
         corpus_emb = torch.load(EMB_PATH)
+        # If dimension mismatch, rebuild cache
+        if corpus_emb.shape[1] != target_dim:
+            print(f"[Info] Detected embedding dimension change ({corpus_emb.shape[1]}→{target_dim}); rebuilding cache.")
+            corpus_emb = embedder.encode(
+                processed_texts,
+                convert_to_tensor=True,
+                normalize_embeddings=True
+            )
+            torch.save(corpus_emb, EMB_PATH)
     else:
         corpus_emb = embedder.encode(
             processed_texts,
@@ -42,17 +55,17 @@ def load_embeddings():
             normalize_embeddings=True
         )
         torch.save(corpus_emb, EMB_PATH)
+
     return ids, texts, corpus_emb
 
-# ── Initialize once ────────────────────────────────────────────────────────
+# Initialize once
 corpus_ids, corpus_texts, corpus_emb = load_embeddings()
 
 # ── E) Pure semantic-search function ──────────────────────────────────────
 def semantic_search(query: str, top_k: int = 5):
-    # Preprocess and encode query
-    q_processed = query  # raw query, no preprocessing
-    q_emb       = embedder.encode(
-        [q_processed],
+    # Encode query directly
+    q_emb = embedder.encode(
+        [query],
         convert_to_tensor=True,
         normalize_embeddings=True
     )
@@ -60,7 +73,7 @@ def semantic_search(query: str, top_k: int = 5):
     hits = util.semantic_search(q_emb, corpus_emb, top_k=top_k)[0]
     results = []
     for h in hits:
-        idx   = h["corpus_id"]
+        idx = h["corpus_id"]
         results.append({
             "article_number": corpus_ids[idx],
             "score":           float(h["score"]),
@@ -70,7 +83,7 @@ def semantic_search(query: str, top_k: int = 5):
 
 # ── F) Smoke-test when run directly ───────────────────────────────────────
 if __name__ == "__main__":
-    q = "قاصر دون الثامنة عشرة من عمره أشرية روحية"
+    q = "يقضى بالإعدام إذا حدث الفعل في زمن الحرب"
     print(f"Top 3 results for query: '{q}'\n")
     for r in semantic_search(q, top_k=3):
         print(f"Article {r['article_number']} (score={r['score']:.3f}):")
