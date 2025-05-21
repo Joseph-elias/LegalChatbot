@@ -1,12 +1,12 @@
 import json
 import re
 import unicodedata
-import pandas as pd
+#import pandas as pd
 from pdf2image import convert_from_path
 import pytesseract
 
 # Path to your PDFLebanon_Penal_Code_1943.pdf
-pdf_path = r'Lebanon_Penal_Code_1943.pdf'
+pdf_path = r'data/tijara-law.pdf'
 
 # 1) OCR extraction page by page
 full_text = ""
@@ -47,14 +47,14 @@ if not articles:
     raise RuntimeError("❌ No articles detected—check your regex or OCR quality.")
 
 # 3) Save to Excel and JSON
-df = pd.DataFrame(articles)
-excel_path = r'C:/joseph/utc+lille/lille/MIAS_COURSES/chatbot/penal_code_articles_ocr.xlsx'
-json_path  = r'C:/joseph/utc+lille/lille/MIAS_COURSES/chatbot/penal_code_articles_ocr.json'
 
-df.to_excel(excel_path, index=False)
+#excel_path = 
+json_path  = r'C:/Users/User/LegalChatbot/data/tijara_code_articles_ocr.json'
+
+#df.to_excel(excel_path, index=False)
 with open(json_path, 'w', encoding='utf-8') as f:
     json.dump(articles, f, ensure_ascii=False, indent=4)
 
 print("✅ Files generated with OCR + normalization:")
-print("  • Excel:", excel_path)
+#print("  • Excel:", excel_path)
 print("  • JSON :", json_path)
