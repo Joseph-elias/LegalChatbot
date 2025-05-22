@@ -18,8 +18,10 @@ embedder = SentenceTransformer(modules=[word_emb, pooling], device="cpu")
 
 # ── B) Paths & cache naming ────────────────────────────────────────────────
 JSON_PATHS = [
-    r"C:\Users\User\LegalChatbot\data\penal_code_articles_ocr.json",
-    r"C:\Users\User\LegalChatbot\data\tijara_code_articles_ocr.json"
+    r"C:/Users/User/LegalChatbot/data/penal_code_articles_ocr.json",
+    r"C:/Users/User/LegalChatbot/data/tijara_code_articles_ocr.json",
+    r"C:/Users/User/LegalChatbot/data/muhakamat-madaniya_code_articles_ocr.json"
+
 ]
 safe_name   = MODEL_NAME.replace('/', '_')
 # include both JSON basenames so caches are unique

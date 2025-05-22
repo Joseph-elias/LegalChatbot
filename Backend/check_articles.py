@@ -1,7 +1,7 @@
 import json
 
 # 1) Load the JSON
-json_path = r'data/tijara_code_articles_ocr.json'
+json_path = r'data/muhakamat-madaniya_code_articles_ocr.json'
 with open(json_path, 'r', encoding='utf-8') as f:
     articles = json.load(f)
 
@@ -13,7 +13,7 @@ for art in articles:
         present_nums.add(int(num_str))
 
 # 3) Define full range and compute missing
-full_range = set(range(1, 668))   # 1 through 772 inclusive
+full_range = set(range(1, 1033))   # 1 through 772 inclusive
 missing = sorted(full_range - present_nums)
 present_sorted = sorted(present_nums)
 

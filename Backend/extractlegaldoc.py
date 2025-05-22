@@ -6,7 +6,7 @@ from pdf2image import convert_from_path
 import pytesseract
 
 # Path to your PDFLebanon_Penal_Code_1943.pdf
-pdf_path = r'data/tijara-law.pdf'
+pdf_path = r'data/muhakamat-madaniya.pdf'
 
 # 1) OCR extraction page by page
 full_text = ""
@@ -49,7 +49,7 @@ if not articles:
 # 3) Save to Excel and JSON
 
 #excel_path = 
-json_path  = r'C:/Users/User/LegalChatbot/data/tijara_code_articles_ocr.json'
+json_path  = r'data/muhakamat-madaniya_code_articles_ocr.json'
 
 #df.to_excel(excel_path, index=False)
 with open(json_path, 'w', encoding='utf-8') as f:
