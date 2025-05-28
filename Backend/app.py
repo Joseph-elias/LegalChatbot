@@ -1,36 +1,56 @@
-# backend/app.py
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from semantic_search import hybrid_search
+import google.generativeai as genai
 
-# 1) Create the app
+# ✅ Hardcoded API key for testing — REMOVE BEFORE DEPLOYING!
+genai.configure(api_key="AIzaSyBeQUdqY2x_kuhO-l3zYB--gH5lOOIYwAo")
+
+# ✅ Recommended fast Gemini model
+model = genai.GenerativeModel("models/gemini-1.5-flash-latest")
+
 app = FastAPI()
 
-# 2) Add CORS _before_ any routes
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      # for dev you can allow all
-    allow_methods=["*"],      # allow GET, POST, OPTIONS, etc.
-    allow_headers=["*"],      # allow Content-Type, Authorization…
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# 3) Health-check endpoint
-@app.get("/ping")
-async def ping():
-    return {"ping": "pong"}
-
-# 4) Import your semantic search
-from semantic_search import hybrid_search
-
-# 5) Define the request schema
 class SearchRequest(BaseModel):
     query: str
-    top_k: int = 5
+    top_k: int = 1000
     alpha: float = 0.6
 
-# 6) Your actual search endpoint
 @app.post("/search")
 async def search(req: SearchRequest):
-    results = hybrid_search(req.query, top_k=req.top_k, alpha=req.alpha)
-    return {"results": results}
+    try:
+        results = hybrid_search(req.query, top_k=req.top_k, alpha=req.alpha)
+
+        context = "\n\n".join([
+            f"المادة {r['article_number']}:\n{r['text']}" for r in results
+        ])
+
+        prompt = f"""أنت مساعد قانوني ذكي. إليك مجموعة من مواد قانون العقوبات اللبناني.
+أجب على السؤال باستخدام **المادة الأكثر صلة فقط** من بين هذه المواد، واذكر رقم المادة في إجابتك.
+
+السياق:
+{context}
+
+سؤال المستخدم:
+{req.query}
+
+الإجابة:"""
+
+        response = model.generate_content(prompt)
+        answer = response.text
+
+        return {
+            "answer": answer,
+            "sources": results
+        }
+
+    except Exception as e:
+        return {"error": str(e)}

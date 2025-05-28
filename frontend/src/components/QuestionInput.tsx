@@ -9,40 +9,25 @@ const QuestionInput: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim()) return;
-    
-    // 1) show user message
+
     addMessage(question, true);
     setQuestion('');
     setTyping(true);
-    
-    try {
-      // 2) call backend 
 
+    try {
       const res = await fetch('http://127.0.0.1:8000/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: question, top_k: 3, alpha: 0.6 }),
       });
-      
+
       if (!res.ok) {
         throw new Error(`Server returned status ${res.status}`);
       }
-      
-      const { results } = await res.json();
-      
-      // 3) build display text
-      const replyText = results
-        .map((r: any) => `المادة ${r.article_number}:\n${r.text}`)
-        .join('\n\n');
-      
-      // 4) build sources list
-      const sources = results.map((r: any) => ({
-        title: `المادة ${r.article_number}`,
-        excerpt: r.text.slice(0, 200) + (r.text.length > 200 ? '…' : ''),
-        url: `#article-${r.article_number}`,
-      }));
-      
-      addMessage(replyText, false, sources);
+
+      const { answer, sources } = await res.json();
+
+      addMessage(answer, false, sources);
     } catch (err: any) {
       console.error('Fetch error:', err);
       addMessage(
@@ -53,7 +38,7 @@ const QuestionInput: React.FC = () => {
       setTyping(false);
     }
   };
-  
+
   return (
     <form onSubmit={handleSubmit} className="p-4 bg-white dark:bg-gray-800">
       <div className="flex items-center space-x-2">
@@ -64,7 +49,7 @@ const QuestionInput: React.FC = () => {
         >
           <Search className="h-5 w-5" />
         </button>
-        
+
         <div className="flex-grow relative">
           <input
             type="text"
@@ -74,7 +59,7 @@ const QuestionInput: React.FC = () => {
             className="w-full p-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 transition-all"
           />
         </div>
-        
+
         <button
           type="button"
           className="p-2 text-gray-500 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -82,7 +67,7 @@ const QuestionInput: React.FC = () => {
         >
           <Mic className="h-5 w-5" />
         </button>
-        
+
         <button
           type="submit"
           disabled={!question.trim()}

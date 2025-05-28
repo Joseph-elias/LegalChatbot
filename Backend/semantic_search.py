@@ -75,7 +75,7 @@ corpus_ids, corpus_texts, corpus_emb    = load_embeddings()
 bm25_index, bm25_tokenized              = load_bm25()
 
 # ── G) Hybrid search now returns the prefixed ID ─────────────────────────
-def hybrid_search(query: str, top_k: int = 5, alpha: float = 0.6):
+def hybrid_search(query: str, top_k: int = 5, alpha: float = 0.5):
     # BM25 part
     q_tokens    = query.split()
     bm25_scores = np.array(bm25_index.get_scores(q_tokens))
