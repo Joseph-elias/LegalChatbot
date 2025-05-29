@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from semantic_search import hybrid_search
+from semantic_search import semantic_search_only  # changed import!
 import google.generativeai as genai
 
 # 🔐 Hardcoded API key for testing — REMOVE in production!
@@ -20,8 +20,7 @@ app.add_middleware(
 # --- Request Schema ---
 class SearchRequest(BaseModel):
     query: str
-    top_k: int = 50
-    alpha: float = 0.6
+    top_k: int = 150
 
 # --- Step 1: Paraphrase the User's Question ---
 def generate_paraphrased_questions(question: str, n: int = 15) -> list[str]:
@@ -32,51 +31,65 @@ def generate_paraphrased_questions(question: str, n: int = 15) -> list[str]:
 
 الصياغات:
 """
-    response = model.generate_content(prompt)
+    response = model.generate_content(
+    prompt,
+    generation_config={"temperature": 0.3}
+)
     return [line.strip("- ").strip() for line in response.text.strip().split("\n") if line.strip()]
 
 # --- Step 2: Search Using All Reformulations ---
-def multi_query_search(queries: list[str], top_k: int, alpha: float) -> list[dict]:
+def multi_query_search(queries: list[str], top_k: int) -> list[dict]:
     seen = set()
     combined = []
     for q in queries:
-        results = hybrid_search(q, top_k=top_k, alpha=alpha)
+        results = semantic_search_only(q, top_k=top_k)
         for r in results:
-            uid = r.get("id") or f"{r['article_number']}-{r['text'][:30]}"
+            uid = r["doc_id"]
             if uid not in seen:
                 combined.append(r)
                 seen.add(uid)
     return combined
 
-# --- Step 3: Gemini Prompt + Clarification Fallback ---
-@app.post("/search")
-async def search(req: SearchRequest):
-    # Reformulate the query
-    paraphrased = generate_paraphrased_questions(req.query)
-    paraphrased.insert(0, req.query)  # include original
-    results = multi_query_search(paraphrased, top_k=req.top_k, alpha=req.alpha)
-
-    # Create Gemini prompt
+# --- Step 3: Gemini Reranking ---
+def rerank_with_llm(results, user_query):
     context = "\n\n".join([f"المادة {r['article_number']}:\n{r['text']}" for r in results])
     prompt = f"""
-أنت مساعد قانوني ذكي. إليك مجموعة من مواد قانون العقوبات اللبناني.
+اختر المادة الوحيدة الأكثر صلة من بين المواد التالية التي تجيب عن سؤال المستخدم، لكن انتبه:
+- إذا كان سؤال المستخدم يتحدث عن "جناية" يجب أن تختار فقط المواد التي تحتوي كلمة "جناية" وليس "جنحة".
+- وإذا كان يتحدث عن "جنحة" اختر فقط المواد التي تحتوي كلمة "جنحة".
+ثم:
+- اذكر رقم المادة،
+- انسخ نص المادة كاملة،
+- واشرح باختصار سبب اختيارك.
+إذا لم توجد مادة مناسبة بدقة، أخبر المستخدم بذلك واطلب منه توضيح سؤاله.
 
-- أجب على السؤال باستخدام المادة **الأكثر صلة فقط** من بين المواد.
-- إذا لم تكن أي مادة مناسبة، أخبر المستخدم أن المواد المقدمة غير كافية وأطلب منه توضيح سؤاله.
 
 المواد:
 {context}
 
 سؤال المستخدم:
-{req.query}
+{user_query}
 
 الإجابة:
 """
-    # Get answer
     response = model.generate_content(prompt)
-    answer = response.text.strip()
+    return response.text.strip()
 
-    # Optional: check for ambiguous replies manually
+# --- Search Endpoint ---
+@app.post("/search")
+async def search(req: SearchRequest):
+    # Step 1: Reformulate the query
+    paraphrased = generate_paraphrased_questions(req.query)
+    paraphrased.insert(0, req.query)  # include original
+
+    # Step 2: Dense search for all paraphrases, deduplicated
+    results = multi_query_search(paraphrased, top_k=req.top_k)
+    results = sorted(results, key=lambda x: -x["score"])[:req.top_k]
+
+    # Step 3: LLM reranking prompt (Gemini picks and explains)
+    answer = rerank_with_llm(results, req.query)
+
+    # Optional: clarification if ambiguous
     ambiguous_phrases = [
         "لا توجد في المواد", "لا يمكن الإجابة", "غير كافية", "لا توجد مادة"
     ]
