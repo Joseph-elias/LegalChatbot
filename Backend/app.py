@@ -14,6 +14,29 @@ from fastapi.middleware.cors import CORSMiddleware
 import pyarabic.araby as araby
 import os
 from dotenv import load_dotenv
+
+# --- FastAPI Setup ---
+app = FastAPI()
+
+origins = [
+    "https://leblegalchatbot.onrender.com",  
+]
+
+
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,          
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+
+
+
 load_dotenv()  
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -60,23 +83,6 @@ def semantic_search_only(query: str, top_k: int = 5):
             print(f"Warning: Index {i} out of bounds for corpus_ids.")
     return results
 
-# --- FastAPI Setup ---
-app = FastAPI()
-
-origins = [
-    "https://leblegalchatbot.onrender.com",  
-]
-
-
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,          
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 # --- Request Schema ---
