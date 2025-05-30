@@ -13,9 +13,11 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import pyarabic.araby as araby
+import os
+from dotenv import load_dotenv
+load_dotenv()  
 
-# 🔐 Hardcoded API key for testing — REMOVE in production!
-genai.configure(api_key="AIzaSyBeQUdqY2x_kuhO-l3zYB--gH5lOOIYwAo")
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("models/gemini-1.5-flash-latest")
 
 
