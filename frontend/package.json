@@ -5,10 +5,10 @@
   "type": "module",
 "scripts": {
   "dev": "vite",
-  "build": "npx vite build",
-  "lint": "eslint .",
-  "preview": "npx vite preview"
+  "build": "vite build",
+  "preview": "vite preview"
 }
+
 ,
   "dependencies": {
     "lucide-react": "^0.344.0",
