@@ -15,7 +15,7 @@ const QuestionInput: React.FC = () => {
     setTyping(true);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/search', {
+      const res = await fetch('${import.meta.env.VITE_API_BASE}/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: question, top_k: 3, alpha: 0.6 }),
