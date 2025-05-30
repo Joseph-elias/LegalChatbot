@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from semantic_search import embedder ,normalize_arabic_text,load_embeddings # ,semantic_search_only # changed import!
 import google.generativeai as genai
@@ -55,7 +54,7 @@ def semantic_search_only(query: str, top_k: int = 5):
                 "article_number": num,
                 "doc_id": corpus_ids[i],
                 "score": float(cos_scores[i]),
-                "text": corpus_texts[i] # corpus_texts should be loaded with corpus_ids
+                "text": corpus_texts[i] 
             })
         else:
             print(f"Warning: Index {i} out of bounds for corpus_ids.")
@@ -63,12 +62,22 @@ def semantic_search_only(query: str, top_k: int = 5):
 
 # --- FastAPI Setup ---
 app = FastAPI()
+
+origins = [
+    "https://leblegalchatbot.onrender.com",  
+]
+
+
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,          
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # --- Request Schema ---
 class SearchRequest(BaseModel):
