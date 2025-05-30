@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SendHorizonal, Mic, Search } from 'lucide-react';
 import { useMessageContext } from '../context/MessageContext';
-
+console.log("API Base URL:", import.meta.env.VITE_API_BASE);
 const QuestionInput: React.FC = () => {
   const [question, setQuestion] = useState('');
   const { addMessage, setTyping } = useMessageContext();
@@ -16,11 +16,12 @@ const QuestionInput: React.FC = () => {
 
     try {
       
-      const res = await fetch(`${import.meta.env.VITE_API_BASE}/search`, {
+      const res = await fetch('https://legalchatbot-efqz.onrender.com/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: question, top_k: 3, alpha: 0.6 }),
       });
+      console.log("API Base URL:", import.meta.env.VITE_API_BASE);
 
       if (!res.ok) {
         throw new Error(`Server returned status ${res.status}`);
