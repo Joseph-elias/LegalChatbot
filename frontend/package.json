@@ -5,9 +5,10 @@
   "type": "module",
 "scripts": {
   "dev": "vite",
-  "build": "node_modules/.bin/vite build",
-  "preview": "node_modules/.bin/vite preview"
+  "build": "node node_modules/vite/bin/vite.js build",
+  "preview": "node node_modules/vite/bin/vite.js preview"
 }
+
 
 ,
   "dependencies": {
