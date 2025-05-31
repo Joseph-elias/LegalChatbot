@@ -48,7 +48,7 @@ def semantic_search_only(query: str, top_k: int = 5):
     global corpus_ids, corpus_texts, corpus_emb
     query = normalize_arabic_text(query)
     # This function will use the globally defined 'embedder' and 'corpus_emb'
-    # which will be based on the new MODEL_NAME after script modification and re-run.
+   
     q_emb = embedder.encode([query], convert_to_tensor=True, normalize_embeddings=True)
     # Ensure corpus_emb is loaded and not empty, handle defensively for worker execution
     if 'corpus_emb' not in globals() or not hasattr(corpus_emb, 'nelement') or corpus_emb.nelement() == 0:
@@ -91,7 +91,7 @@ class SearchRequest(BaseModel):
     top_k: int = 150
 
 # --- Step 1: Paraphrase the User's Question ---
-def generate_paraphrased_questions(question: str, n: int = 25) -> list[str]:
+def generate_paraphrased_questions(question: str, n: int = 54) -> list[str]:
     prompt = f"""
 أعد صياغة السؤال التالي {n} مرة بصياغات مختلفة ولكن بنفس المعنى، مستخدمًا أسلوبًا أكاديميًا ورسميًا كما لو أنك تكتب لمقال علمي أو تقرير قانوني. لا تضف إجابة، فقط الصياغات.
 
