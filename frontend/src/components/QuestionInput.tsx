@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { SendHorizonal, Mic, Search } from 'lucide-react';
 import { useMessageContext } from '../context/MessageContext';
-console.log("API Base URL:", import.meta.env.VITE_API_BASE);
+
+const API_BASE = (import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+const SEARCH_URL = `${API_BASE}/search`;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const QuestionInput: React.FC = () => {
   const [question, setQuestion] = useState('');
   const { addMessage, setTyping } = useMessageContext();
@@ -15,13 +20,28 @@ const QuestionInput: React.FC = () => {
     setTyping(true);
 
     try {
-      
-      const res = await fetch('http://127.0.0.1:8000/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: question, top_k: 3, alpha: 0.6 }),
-      });
-      console.log("API Base URL:", import.meta.env.VITE_API_BASE);
+      let res: Response | null = null;
+      let lastError: unknown = null;
+
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          res = await fetch(SEARCH_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: question, top_k: 3 }),
+          });
+          break;
+        } catch (error) {
+          lastError = error;
+          if (attempt === 0) {
+            await sleep(1000);
+          }
+        }
+      }
+
+      if (!res) {
+        throw new Error(lastError instanceof Error ? lastError.message : 'Could not connect to backend API');
+      }
 
       if (!res.ok) {
         throw new Error(`Server returned status ${res.status}`);

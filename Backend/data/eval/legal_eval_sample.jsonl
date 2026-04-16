@@ -1,0 +1,5 @@
+{"query":"ما هي عقوبة السرقة؟","expected_citation_tags":["LB-MOJ-PENAL-A0636"],"notes":"baseline theft penalty"}
+{"query":"ما هي عقوبة السرقة بواسطة النشل في الأماكن العامة؟","expected_citation_tags":["LB-MOJ-PENAL-A0636"],"notes":"pickpocket/public place aggravation should map to theft article context"}
+{"query":"عند اجتماع أكثر من متهم في جريمة سرقة، ما الأثر القانوني المتوقع؟","expected_citation_tags":["LB-MOJ-PENAL-A0636"],"notes":"multi-offender aggravation pattern"}
+{"query":"ما هي أركان جريمة التزوير في المستندات الرسمية؟","expected_citation_tags":["LB-MOJ-PENAL-A0453"],"notes":"forgery definition/elements"}
+{"query":"ما هي عقوبة القيادة تحت تأثير الكحول أو المخدرات؟","expected_citation_tags":[],"notes":"expected insufficient basis with current corpus coverage"}

@@ -1,100 +1,168 @@
+from __future__ import annotations
+
+import hashlib
 import json
 import os
+from pathlib import Path
+from typing import Iterable
+
+import pyarabic.araby as araby
 import torch
 from sentence_transformers import SentenceTransformer
-import pyarabic.araby as araby
 
-# ── Arabic Text Normalization Function ─────────────────────────────────────
-def normalize_arabic_text(text):
+ROOT_DIR = Path(__file__).resolve().parent
+DEFAULT_JSON_PATHS = [
+    ROOT_DIR / "data" / "cleaned" / "combined_legal_articles_retrieval_with_moj_selected.json",
+]
+
+MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "akhooli/Arabic-SBERT-100K")
+EMBEDDING_DEVICE = os.getenv("EMBEDDING_DEVICE", "cpu")
+embedder = SentenceTransformer(MODEL_NAME, device=EMBEDDING_DEVICE)
+
+DOC_METADATA: dict[str, dict] = {}
+
+
+def normalize_arabic_text(text: str) -> str:
     text = araby.strip_tashkeel(text)
     text = araby.strip_tatweel(text)
     text = araby.normalize_alef(text)
     text = araby.normalize_hamza(text)
     return text
 
-# ── A) Setup embedder ──────────────────────────────────────────────────────
-MODEL_NAME = "akhooli/Arabic-SBERT-100K" # <-- Changed
-embedder = SentenceTransformer(MODEL_NAME, device="cpu")  # Use "cuda" if you have a GPU
 
-# ── B) Paths & cache naming ────────────────────────────────────────────────
-JSON_PATHS = [
-    r"data/cleaned/combined_legal_articles_retrieval_with_moj_selected.json",
-]
-safe_name = MODEL_NAME.replace('/', '_')
-tag = "_".join(os.path.splitext(os.path.basename(p))[0] for p in JSON_PATHS)
-EMB_PATH = f"corpus_emb_{safe_name}_{tag}.pt"
-DOC_METADATA: dict[str, dict] = {}
+def _parse_json_paths() -> list[Path]:
+    raw = os.getenv("LEGAL_JSON_PATHS", "").strip()
+    if not raw:
+        return DEFAULT_JSON_PATHS
 
-# ── C) Load & merge articles with prefixed IDs ────────────────────────────
-def load_articles(json_paths=JSON_PATHS):
-    global DOC_METADATA
-    all_ids, all_texts, all_sources = [], [], []
-    DOC_METADATA = {}
+    paths: list[Path] = []
+    for token in raw.split(","):
+        candidate = Path(token.strip())
+        if not candidate:
+            continue
+        paths.append(candidate if candidate.is_absolute() else (ROOT_DIR / candidate))
+    return paths or DEFAULT_JSON_PATHS
+
+
+def _safe_model_name() -> str:
+    return MODEL_NAME.replace("/", "_")
+
+
+def _corpus_fingerprint(json_paths: Iterable[Path]) -> str:
+    payload: list[str] = [MODEL_NAME]
     for path in json_paths:
-        src = os.path.splitext(os.path.basename(path))[0]
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                articles = json.load(f)
-            for i, a in enumerate(articles):
-                text = normalize_arabic_text(str(a.get("text", "")))
-                if not text:
-                    continue
+        resolved = path.resolve()
+        if not resolved.exists():
+            payload.append(f"{resolved}:missing")
+            continue
+        stat = resolved.stat()
+        payload.append(f"{resolved}:{stat.st_size}:{stat.st_mtime_ns}")
 
-                article_number = str(
-                    a.get("article_number_normalized")
-                    or a.get("article_number")
-                    or "unknown"
-                )
-                doc_id = a.get("doc_id") or f"{src}_{i}_{article_number}"
-                law_code = a.get("law_code") or src
+    digest = hashlib.sha256("||".join(payload).encode("utf-8")).hexdigest()
+    return digest[:16]
 
-                all_ids.append(doc_id)
-                all_texts.append(text)
-                all_sources.append(law_code)
-                DOC_METADATA[doc_id] = {
-                    "law_code": law_code,
-                    "law_name": a.get("law_name"),
-                    "article_number": a.get("article_number_normalized") or a.get("article_number"),
-                    "citation_tag": a.get("citation_tag"),
-                    "provenance": a.get("provenance", {}),
-                    "source_file": a.get("source_file"),
-                }
-        except FileNotFoundError:
-            print(f"Warning: File not found {path}. Skipping.")
+
+def get_embedding_cache_path() -> Path:
+    explicit = os.getenv("EMBEDDINGS_PATH", "").strip()
+    if explicit:
+        target = Path(explicit)
+        return target if target.is_absolute() else (ROOT_DIR / target)
+
+    cache_dir = os.getenv("EMBEDDINGS_DIR", "").strip()
+    base_dir = Path(cache_dir) if cache_dir else (ROOT_DIR / "cache")
+    if not base_dir.is_absolute():
+        base_dir = ROOT_DIR / base_dir
+
+    fingerprint = _corpus_fingerprint(_parse_json_paths())
+    return base_dir / f"corpus_emb_{_safe_model_name()}_{fingerprint}.pt"
+
+
+def load_articles(json_paths: list[Path] | None = None) -> tuple[list[str], list[str], list[str]]:
+    global DOC_METADATA
+
+    paths = json_paths or _parse_json_paths()
+    all_ids: list[str] = []
+    all_texts: list[str] = []
+    all_sources: list[str] = []
+    DOC_METADATA = {}
+
+    missing = [str(p) for p in paths if not p.exists()]
+    if missing:
+        raise FileNotFoundError(f"Missing legal corpus files: {missing}")
+
+    for path in paths:
+        src = path.stem
+        with path.open("r", encoding="utf-8") as f:
+            articles = json.load(f)
+
+        for i, article in enumerate(articles):
+            text = normalize_arabic_text(str(article.get("text", "")))
+            if not text:
+                continue
+
+            article_number = str(
+                article.get("article_number_normalized")
+                or article.get("article_number")
+                or "unknown"
+            )
+            doc_id = article.get("doc_id") or f"{src}_{i}_{article_number}"
+            law_code = article.get("law_code") or src
+
+            all_ids.append(doc_id)
+            all_texts.append(text)
+            all_sources.append(law_code)
+            DOC_METADATA[doc_id] = {
+                "law_code": law_code,
+                "law_name": article.get("law_name"),
+                "article_number": article.get("article_number_normalized") or article.get("article_number"),
+                "citation_tag": article.get("citation_tag"),
+                "provenance": article.get("provenance", {}),
+                "source_file": article.get("source_file"),
+            }
+
+    if not all_texts:
+        raise ValueError("No legal article texts found after loading JSON corpus.")
+
     return all_ids, all_texts, all_sources
 
 
 def get_doc_metadata(doc_id: str) -> dict:
     return DOC_METADATA.get(doc_id, {})
 
-# ── D) Build / load embeddings ────────────────────────────────────────────
-def load_embeddings():
+
+def _target_dimension() -> int:
+    # sentence-transformers renamed this method; support both for compatibility.
+    if hasattr(embedder, "get_embedding_dimension"):
+        return int(embedder.get_embedding_dimension())
+    return int(embedder.get_sentence_embedding_dimension())
+
+
+def load_embeddings(
+    *,
+    rebuild: bool = False,
+    require_existing: bool = False,
+) -> tuple[list[str], list[str], torch.Tensor]:
     ids, texts, _ = load_articles()
-    # If texts is empty because files were not found, this should still proceed
-    # but corpus_emb might be empty or cause issues later.
-    # The primary goal is changing MODEL_NAME.
-    if not texts:
-        print("Warning: No texts loaded, embeddings will likely be empty or fail.")
-        # Return empty tensor with expected structure if possible, or handle error.
-        # For this task, focusing on MODEL_NAME change is key.
-        # Fallback: create a dummy embedding if texts is empty to avoid crashing embedder.encode
-        # This is a workaround for worker environment if it tries to run the script.
-        texts = ["dummy text"] 
-        ids = ["dummy_id"]
+    emb_path = get_embedding_cache_path()
+    emb_path.parent.mkdir(parents=True, exist_ok=True)
+    target_dim = _target_dimension()
 
+    if require_existing and (not emb_path.exists()):
+        raise FileNotFoundError(
+            f"Embedding cache is required but missing at: {emb_path}. "
+            "Run scripts/precompute_embeddings.py before starting the API."
+        )
 
-    target_dim = embedder.get_sentence_embedding_dimension()
+    should_encode = rebuild or (not emb_path.exists())
+    if not should_encode:
+        corpus_emb = torch.load(emb_path)
+        if corpus_emb.ndim != 2 or corpus_emb.shape[1] != target_dim or corpus_emb.shape[0] != len(ids):
+            should_encode = True
 
-    if os.path.exists(EMB_PATH):
-        print(f"Attempting to load existing embeddings from {EMB_PATH}")
-        corpus_emb = torch.load(EMB_PATH)
-        if corpus_emb.shape[1] != target_dim:
-            print(f"Dimension mismatch. Expected {target_dim}, got {corpus_emb.shape[1]}. Re-encoding.")
-            corpus_emb = embedder.encode(texts, convert_to_tensor=True, normalize_embeddings=True)
-            torch.save(corpus_emb, EMB_PATH)
-    else:
-        print(f"No existing embeddings found at {EMB_PATH}. Encoding texts.")
+    if should_encode:
+        print(f"Building embeddings at {emb_path} ...")
         corpus_emb = embedder.encode(texts, convert_to_tensor=True, normalize_embeddings=True)
-        torch.save(corpus_emb, EMB_PATH)
+        torch.save(corpus_emb, emb_path)
+        print(f"Saved embeddings: {emb_path}")
 
     return ids, texts, corpus_emb
