@@ -130,6 +130,7 @@ Create `Backend/.env`:
 OPENAI_API_KEY=your_key
 OPENAI_MODEL=gpt-4o-mini
 ALLOWED_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
+ALLOWED_HOSTS=localhost,127.0.0.1
 POLICY_VERSION=2026-04-16
 
 PRELOAD_EMBEDDINGS=1
@@ -177,6 +178,94 @@ Run UI:
 ```bash
 npm run dev
 ```
+
+## Docker Production Stack
+
+This repo now includes:
+- `Backend/Dockerfile`
+- `frontend/Dockerfile`
+- `frontend/nginx/default.conf` (serves frontend + proxies `/api` to backend)
+- `docker-compose.yml`
+- `docker-compose.internet.yml` (adds Caddy TLS reverse proxy)
+- `deploy/Caddyfile` (automatic Let's Encrypt HTTPS)
+
+### 1) Prepare env for server
+
+Copy `deploy/.env.production.example` into `Backend/.env` and fill real values.
+Copy `deploy/.env.internet.example` into `deploy/.env.internet` and set your public domain + email.
+
+### 2) Build and run
+
+```bash
+docker compose --env-file deploy/.env.internet -f docker-compose.yml -f docker-compose.internet.yml build --pull
+docker compose --env-file deploy/.env.internet -f docker-compose.yml -f docker-compose.internet.yml up -d
+```
+
+### 3) Open app
+
+- Frontend (HTTPS): `https://your-domain`
+- Backend health (HTTPS): `https://your-domain/api/healthz`
+
+### 4) Precompute embeddings before go-live
+
+```bash
+docker compose run --rm backend python scripts/precompute_embeddings.py
+```
+
+This avoids first-request cold embedding build in production.
+
+## CI/CD
+
+### GitHub Actions included
+
+- `.github/workflows/ci.yml`
+  - backend dependency install + Python compile checks
+  - frontend build check
+  - Docker image build check for backend/frontend
+- `.github/workflows/cd.yml`
+  - manual deploy via SSH (`workflow_dispatch`)
+  - executes `deploy/deploy.sh` on target server
+
+### Required CD secrets
+
+Set these in GitHub repository secrets:
+- `DEPLOY_HOST`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_KEY`
+- `DEPLOY_REPO_DIR` (example: `/opt/legalchatbot`)
+- `DEPLOY_COMPOSE_FILES` (optional, recommended: `docker-compose.yml,docker-compose.internet.yml`)
+- `DEPLOY_ENV_FILE` (optional, recommended: `deploy/.env.internet`)
+
+### Server bootstrap (one-time)
+
+```bash
+git clone <your-repo-url> /opt/legalchatbot
+cd /opt/legalchatbot
+cp deploy/.env.production.example Backend/.env
+cp deploy/.env.internet.example deploy/.env.internet
+# edit Backend/.env with real production values
+# edit deploy/.env.internet with real domain/email values
+docker compose --env-file deploy/.env.internet -f docker-compose.yml -f docker-compose.internet.yml build --pull
+docker compose --env-file deploy/.env.internet -f docker-compose.yml -f docker-compose.internet.yml up -d
+```
+
+### Internet readiness checklist
+
+1. DNS:
+- `A` record points your domain to the server public IP.
+
+2. Server firewall:
+- open inbound `80/tcp` and `443/tcp`.
+- close direct access to app internals (no public `8000` needed).
+
+3. Backend policy:
+- In `Backend/.env`, set:
+  - `ALLOWED_ORIGINS=https://your-domain`
+  - `ALLOWED_HOSTS=your-domain,www.your-domain,localhost,127.0.0.1`
+
+4. HTTPS:
+- Caddy automatically provisions and renews certificates using Let's Encrypt.
+- Certificate state persists in Docker volumes (`caddy_data`, `caddy_config`).
 
 ## Fast Startup in Deployment
 

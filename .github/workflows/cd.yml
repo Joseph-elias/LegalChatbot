@@ -1,0 +1,26 @@
+name: CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to deploy
+        required: true
+        default: main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            export BRANCH=${{ github.event.inputs.branch }}
+            export REPO_DIR=${{ secrets.DEPLOY_REPO_DIR }}
+            export COMPOSE_FILES=${{ secrets.DEPLOY_COMPOSE_FILES }}
+            export COMPOSE_ENV_FILE=${{ secrets.DEPLOY_ENV_FILE }}
+            bash "$REPO_DIR/deploy/deploy.sh"

@@ -4,7 +4,7 @@ import ChatMessage from './components/ChatMessage';
 import Footer from './components/Footer';
 import './App.css';
 
-const API_BASE = (import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/+$/, '');
 const POLICY_VERSION = '2026-04-16';
 const COOKIE_CONSENT_KEY = 'cookie_consent_v1';
 

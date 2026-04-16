@@ -21,6 +21,7 @@ from fastapi import Header
 from fastapi import Request
 from fastapi import Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from openai import OpenAI
 from pydantic import BaseModel
 from sentence_transformers import util
@@ -43,6 +44,7 @@ app = FastAPI()
 load_dotenv()
 
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:5173,http://localhost:5173").split(",") if o.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 ALLOW_CREDENTIALS = "*" not in ALLOWED_ORIGINS
 
 app.add_middleware(
@@ -52,6 +54,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS or ["localhost", "127.0.0.1"])
 
 
 @app.middleware("http")
@@ -1067,6 +1070,11 @@ def run_assistant_pipeline(query: str, top_k: int) -> dict[str, Any]:
 @app.post("/search")
 async def search(req: SearchRequest) -> dict[str, Any]:
     return run_assistant_pipeline(req.query, req.top_k)
+
+
+@app.get("/healthz")
+async def healthz() -> dict[str, Any]:
+    return {"status": "ok"}
 
 
 @app.post("/auth/register")
