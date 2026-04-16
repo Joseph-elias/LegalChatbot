@@ -1,0 +1,38 @@
+[
+  {
+    "law_code": "penal",
+    "source_file": "penal_code_articles_ocr.json",
+    "rows_total": 773,
+    "rows_retrieval": 673,
+    "repealed": 99,
+    "excluded": 0,
+    "with_flags": 41
+  },
+  {
+    "law_code": "commercial",
+    "source_file": "tijara_code_articles_ocr.json",
+    "rows_total": 765,
+    "rows_retrieval": 700,
+    "repealed": 46,
+    "excluded": 19,
+    "with_flags": 151
+  },
+  {
+    "law_code": "civil_procedure",
+    "source_file": "muhakamat-madaniya_code_articles_ocr.json",
+    "rows_total": 1033,
+    "rows_retrieval": 978,
+    "repealed": 55,
+    "excluded": 0,
+    "with_flags": 8
+  },
+  {
+    "law_code": "civil",
+    "source_file": "civil_code_articles_ocr.json",
+    "rows_total": 1041,
+    "rows_retrieval": 1015,
+    "repealed": 20,
+    "excluded": 4,
+    "with_flags": 49
+  }
+]

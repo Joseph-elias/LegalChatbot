@@ -1,0 +1,13 @@
+{
+  "source": "https://www.justice.gov.lb/laws/2",
+  "laws_found": 15,
+  "laws_fetched": 15,
+  "articles_total": 156,
+  "articles_new_only": 145,
+  "articles_duplicate_existing": 0,
+  "outputs": {
+    "raw_pages": "C:\\joseph\\utc+lille\\lille\\MIAS_COURSES\\projects\\LegalChatbot\\Backend\\data\\cleaned\\moj_selected_laws_raw_pages.json",
+    "articles_full": "C:\\joseph\\utc+lille\\lille\\MIAS_COURSES\\projects\\LegalChatbot\\Backend\\data\\cleaned\\moj_selected_laws_articles_full.json",
+    "articles_new_only": "C:\\joseph\\utc+lille\\lille\\MIAS_COURSES\\projects\\LegalChatbot\\Backend\\data\\cleaned\\moj_selected_laws_articles_new_only.json"
+  }
+}

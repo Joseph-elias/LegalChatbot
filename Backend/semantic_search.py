@@ -1,12 +1,7 @@
 import json
 import os
 import torch
-import numpy as np
-from sentence_transformers import util, SentenceTransformer
-import google.generativeai as genai
-from fastapi import FastAPI
-from pydantic import BaseModel
-from fastapi.middleware.cors import CORSMiddleware
+from sentence_transformers import SentenceTransformer
 import pyarabic.araby as araby
 
 # ── Arabic Text Normalization Function ─────────────────────────────────────
@@ -23,33 +18,54 @@ embedder = SentenceTransformer(MODEL_NAME, device="cpu")  # Use "cuda" if you ha
 
 # ── B) Paths & cache naming ────────────────────────────────────────────────
 JSON_PATHS = [
-    r"data/penal_code_articles_ocr.json",
-    r"data/tijara_code_articles_ocr.json",
-    r"data/muhakamat-madaniya_code_articles_ocr.json"
+    r"data/cleaned/combined_legal_articles_retrieval_with_moj_selected.json",
 ]
 safe_name = MODEL_NAME.replace('/', '_')
 tag = "_".join(os.path.splitext(os.path.basename(p))[0] for p in JSON_PATHS)
 EMB_PATH = f"corpus_emb_{safe_name}_{tag}.pt"
+DOC_METADATA: dict[str, dict] = {}
 
 # ── C) Load & merge articles with prefixed IDs ────────────────────────────
 def load_articles(json_paths=JSON_PATHS):
+    global DOC_METADATA
     all_ids, all_texts, all_sources = [], [], []
+    DOC_METADATA = {}
     for path in json_paths:
         src = os.path.splitext(os.path.basename(path))[0]
-        # Worker should not attempt to read these paths.
-        # This function is for context, modification is elsewhere.
         try:
             with open(path, "r", encoding="utf-8") as f:
                 articles = json.load(f)
-            for a in articles:
-                all_ids.append(f"{src}_{a['article_number']}")
-                all_texts.append(normalize_arabic_text(a["text"]))
-                all_sources.append(src)
+            for i, a in enumerate(articles):
+                text = normalize_arabic_text(str(a.get("text", "")))
+                if not text:
+                    continue
+
+                article_number = str(
+                    a.get("article_number_normalized")
+                    or a.get("article_number")
+                    or "unknown"
+                )
+                doc_id = a.get("doc_id") or f"{src}_{i}_{article_number}"
+                law_code = a.get("law_code") or src
+
+                all_ids.append(doc_id)
+                all_texts.append(text)
+                all_sources.append(law_code)
+                DOC_METADATA[doc_id] = {
+                    "law_code": law_code,
+                    "law_name": a.get("law_name"),
+                    "article_number": a.get("article_number_normalized") or a.get("article_number"),
+                    "citation_tag": a.get("citation_tag"),
+                    "provenance": a.get("provenance", {}),
+                    "source_file": a.get("source_file"),
+                }
         except FileNotFoundError:
-            # If files aren't found in worker env, return empty lists for this part.
-            # This is to prevent errors if worker tries to run the script for validation.
             print(f"Warning: File not found {path}. Skipping.")
     return all_ids, all_texts, all_sources
+
+
+def get_doc_metadata(doc_id: str) -> dict:
+    return DOC_METADATA.get(doc_id, {})
 
 # ── D) Build / load embeddings ────────────────────────────────────────────
 def load_embeddings():

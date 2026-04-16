@@ -1,19 +1,23 @@
-# ─── Core API ───────────────────────────
 fastapi==0.115.2
-uvicorn[standard]==0.34.0          # httptools, websockets included
+uvicorn[standard]==0.34.0
 
-# ─── Semantic search (SBERT on CPU) ────
-torch==2.7.0                       # CPU wheel
-sentence-transformers==4.1.0
-numpy==1.26.4
+# Python-version-aware scientific stack:
+# - 3.13 needs newer wheels (NumPy 2.x / newer Torch / newer sentence-transformers)
+# - <=3.12 can stay on previous pins
+numpy==1.26.4; python_version < "3.13"
+numpy>=2.1,<3; python_version >= "3.13"
 
-# ─── Google Gemini / GenAI client ──────
-google-generativeai==0.8.5       # pulls google-ai-generativelanguage, api-core, grpcio-status, etc.
+torch==2.7.0; python_version < "3.13"
+torch>=2.9,<3; python_version >= "3.13"
 
-# ─── Arabic utilities ──────────────────
+sentence-transformers==4.1.0; python_version < "3.13"
+sentence-transformers>=5.2,<6; python_version >= "3.13"
 PyArabic==0.6.15
 
-# ─── Misc helpers ──────────────────────
-python-dotenv==1.0.1               # if you load .env locally
-rank-bm25==0.2.2                   # you call it in your code
-rich==14.0.0                       # logging pretty-print (optional)
+openai==1.75.0
+python-dotenv==1.0.1
+requests==2.32.3
+
+# Data extraction scripts (extractlegaldoc.py)
+pdf2image==1.17.0
+pytesseract==0.3.13

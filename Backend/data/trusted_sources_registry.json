@@ -1,0 +1,74 @@
+{
+  "sources": [
+    {
+      "key": "lebanon_moj_selected_laws_pack",
+      "citation_prefix": "LB-MOJ-SL",
+      "publisher": "Ministry of Justice - Republic of Lebanon",
+      "publisher_short": "MoJ Lebanon",
+      "official_collection": "Selected Laws",
+      "source_type": "government_website",
+      "jurisdiction": "Lebanon",
+      "access_url": "https://www.justice.gov.lb/laws/2",
+      "law_landing_url": "https://www.justice.gov.lb/law-details/1/2",
+      "usage_scope": "educational_research_only",
+      "attribution_required": true,
+      "last_verified_utc": "2026-04-16"
+    },
+    {
+      "key": "lebanon_penal_code",
+      "citation_prefix": "LB-MOJ-PENAL",
+      "publisher": "Ministry of Justice - Republic of Lebanon",
+      "publisher_short": "MoJ Lebanon",
+      "official_collection": "Selected Laws",
+      "source_type": "government_website",
+      "jurisdiction": "Lebanon",
+      "access_url": "https://www.justice.gov.lb/laws/2",
+      "law_landing_url": "https://www.justice.gov.lb/index.php/law-details/11/2",
+      "usage_scope": "educational_research_only",
+      "attribution_required": true,
+      "last_verified_utc": "2026-04-16"
+    },
+    {
+      "key": "lebanon_commercial_code",
+      "citation_prefix": "LB-MOJ-COM",
+      "publisher": "Ministry of Justice - Republic of Lebanon",
+      "publisher_short": "MoJ Lebanon",
+      "official_collection": "Selected Laws",
+      "source_type": "government_website",
+      "jurisdiction": "Lebanon",
+      "access_url": "https://www.justice.gov.lb/laws/2",
+      "law_landing_url": "https://www.justice.gov.lb/index.php/law-details/9/2",
+      "usage_scope": "educational_research_only",
+      "attribution_required": true,
+      "last_verified_utc": "2026-04-16"
+    },
+    {
+      "key": "lebanon_civil_procedure_code",
+      "citation_prefix": "LB-LP-CIVPRO",
+      "publisher": "Lebanese Parliament",
+      "publisher_short": "Parliament",
+      "official_collection": "Laws Approved by Parliament",
+      "source_type": "parliament_portal",
+      "jurisdiction": "Lebanon",
+      "access_url": "https://www.lp.gov.lb/ViewLawYears",
+      "law_landing_url": "https://www.lp.gov.lb/ViewLawYears",
+      "usage_scope": "educational_research_only",
+      "attribution_required": true,
+      "last_verified_utc": "2026-04-16"
+    },
+    {
+      "key": "lebanon_obligations_contracts_code",
+      "citation_prefix": "LB-LP-CIV",
+      "publisher": "Lebanese Parliament",
+      "publisher_short": "Parliament",
+      "official_collection": "Laws Approved by Parliament",
+      "source_type": "parliament_portal",
+      "jurisdiction": "Lebanon",
+      "access_url": "https://www.lp.gov.lb/ViewLawYears",
+      "law_landing_url": "https://www.lp.gov.lb/ViewLawYears",
+      "usage_scope": "educational_research_only",
+      "attribution_required": true,
+      "last_verified_utc": "2026-04-16"
+    }
+  ]
+}
